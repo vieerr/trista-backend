@@ -1,4 +1,3 @@
-from mangum import Mangum
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -83,5 +82,3 @@ async def get_products():
         {"id": "2", "name": "Pantalón de mezclilla", "price": 45.5, "taxRate": 10, "reference": "P-001"},
     ]
     return products
-
-handler = Mangum(app)
