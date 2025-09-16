@@ -1,0 +1,50 @@
+[
+  {
+    "number": "1",
+    "client": "Jhon Doe",
+    "type": "Simple",
+    "payment_method": "cash",
+    "date": "15-09-2025",
+    "due_date": "15-09-2025",
+    "amount": 25.188,
+    "products": [
+      {
+        "id": "1757985816781",
+        "productId": "1",
+        "productName": "Camisa Polo",
+        "reference": "S-001",
+        "price": 20.99,
+        "discount": 0.0,
+        "taxName": "IVA 20%",
+        "taxRate": 20,
+        "quantity": 1,
+        "total": 25.188
+      }
+    ],
+    "status": "Pending"
+  },
+  {
+    "number": "2",
+    "client": "Jhon Doe",
+    "type": "Simple",
+    "payment_method": "cash",
+    "date": "15-09-2025",
+    "due_date": "15-09-2025",
+    "amount": 25.188,
+    "products": [
+      {
+        "id": "1757986184532",
+        "productId": "1",
+        "productName": "Camisa Polo",
+        "reference": "S-001",
+        "price": 20.99,
+        "discount": 0.0,
+        "taxName": "IVA 20%",
+        "taxRate": 20,
+        "quantity": 1,
+        "total": 25.188
+      }
+    ],
+    "status": "Pending"
+  }
+]
