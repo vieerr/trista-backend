@@ -1,15 +1,14 @@
 from fastapi import FastAPI, Form, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from pymongo import MongoClient
 import os
-from bson import json_util
+from bson import ObjectId, json_util
 import json
 from dotenv import load_dotenv
 import cloudinary
 from cloudinary.uploader import upload 
-
 
 load_dotenv()
 
@@ -37,6 +36,7 @@ invoices_collection = db["invoices"]
 products_collection = db["products"] 
 
 class Product(BaseModel):
+    id: str = Field(..., alias="_id")  # maps Mongo's `_id` → API's `id`
     type: str
     name: str
     unit: str
@@ -49,8 +49,7 @@ class Product(BaseModel):
     image: Optional[UploadFile] = None
 
 class ProductItem(BaseModel):
-    id: str
-    productId: str
+    _id: str
     productName: str
     reference: str
     price: float
@@ -91,8 +90,9 @@ async def create_invoice(invoice: Invoice):
 @app.get("/products", response_model=List[Product])
 async def get_products():
     products = list(products_collection.find())
-    return json.loads(json_util.dumps(products))
-
+    for product in products:
+        product["_id"] = str(product["_id"])  # stringify ObjectId
+    return products
 
 @app.post("/products", response_model=Product)
 async def create_product(
@@ -126,6 +126,6 @@ async def create_product(
         product_dict["image_url"] = result.get("secure_url")
 
     inserted = products_collection.insert_one(product_dict)
-    product_dict["id"] = str(inserted.inserted_id)
+    product_dict["_id"] = str(inserted.inserted_id)  # Use _id instead of id
 
     return Product(**product_dict)
