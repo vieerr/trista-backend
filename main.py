@@ -1,18 +1,20 @@
-from fastapi import FastAPI, Form, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import List, Optional
-from pymongo import MongoClient
 import os
-from bson import ObjectId, json_util
-import json
-from dotenv import load_dotenv
 import cloudinary
-from cloudinary.uploader import upload 
+
+from models import Invoice, Product
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+from routes.invoices import router as invoice_router
+from routes.products import router as product_router
 
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(
+    title="Trista Backend",
+    description="Backend API for trista",
+    version="1.0.0"
+)
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -29,103 +31,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MONGO_URI = os.getenv("MONGO_URI")
-client = MongoClient(MONGO_URI)
-db = client["trista"]
-invoices_collection = db["invoices"]
-products_collection = db["products"] 
+app.include_router(invoice_router, prefix="/invoices", tags=["Invoices"])
+app.include_router(product_router, prefix="/products", tags=["Products"])
 
-class Product(BaseModel):
-    id: str = Field(..., alias="_id")  # maps Mongo's `_id` → API's `id`
-    type: str
-    name: str
-    unit: str
-    reference: str
-    price: float
-    taxName: str
-    taxRate: int
-    total: float
-    description: str
-    image: Optional[UploadFile] = None
-
-class ProductItem(BaseModel):
-    _id: str
-    productName: str
-    reference: str
-    price: float
-    discount: float
-    taxName: str
-    taxRate: int
-    quantity: int
-    total: float
-
-class Invoice(BaseModel):
-    number: str
-    client: str
-    type: str
-    payment_method: str
-    date: str
-    due_date: str
-    amount: float
-    products: List[ProductItem]
-    status: str
-
-@app.get("/invoices", response_model=List[Invoice])
-async def get_invoices():
-    invoices = list(invoices_collection.find())
-    return json.loads(json_util.dumps(invoices))
-
-@app.get("/invoices/count", response_model=int)
-async def get_invoices_count():
-    return invoices_collection.count_documents({})
-
-@app.post("/invoices", response_model=Invoice)
-async def create_invoice(invoice: Invoice):
-    invoice_count = invoices_collection.count_documents({})
-    invoice_dict = invoice.dict()
-    invoice_dict["number"] = str(invoice_count + 1)  
-    invoices_collection.insert_one(invoice_dict)
-    return invoice_dict
-
-@app.get("/products", response_model=List[Product])
-async def get_products():
-    products = list(products_collection.find())
-    for product in products:
-        product["_id"] = str(product["_id"])  # stringify ObjectId
-    return products
-
-@app.post("/products", response_model=Product)
-async def create_product(
-    type: str = Form(...),
-    name: str = Form(...),
-    unit: str = Form(...),
-    reference: Optional[str] = Form(None),
-    price: float = Form(...),
-    taxName: str = Form(...),
-    taxRate: int = Form(...),
-    total: float = Form(...),
-    description: Optional[str] = Form(None),
-    image: Optional[UploadFile] = File(None),
-):
-    product_dict = {
-        "type": type,
-        "name": name,
-        "unit": unit,
-        "reference": reference,
-        "price": price,
-        "taxName": taxName,
-        "taxRate": taxRate,
-        "total": total,
-        "description": description,
-        "image_url": None,
-    }
-
-    if image:
-        content = await image.read()
-        result = upload(content, folder="products") 
-        product_dict["image_url"] = result.get("secure_url")
-
-    inserted = products_collection.insert_one(product_dict)
-    product_dict["_id"] = str(inserted.inserted_id)  # Use _id instead of id
-
-    return Product(**product_dict)
