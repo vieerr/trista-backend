@@ -1,17 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
-class ProductItem(BaseModel):
-    row_id: str
-    productName: str
-    reference: str
-    price: float
-    discount: float
-    taxName: str
-    taxRate: int
-    quantity: int
-    total: float
-
 class Product(BaseModel):
     id: str = Field(..., alias="_id")
     type: str
@@ -24,6 +13,21 @@ class Product(BaseModel):
     total: float
     description: str
     image_url: Optional[str] = None
+    class Config:
+        populate_by_name = True
+
+
+class ProductItem(BaseModel):
+    row_id: str
+    product: Product
+    # productName: str
+    reference: str
+    price: float
+    discount: float
+    taxName: str
+    taxRate: int
+    quantity: int
+    total: float
 
 class Invoice(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
