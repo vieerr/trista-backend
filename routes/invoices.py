@@ -59,7 +59,10 @@ async def create_invoice(invoice: Invoice):
 async def get_invoices_by_product(product_id: str):
     """Retrieve all invoices that include a specific product by its ID."""
     try:
-        invoices = invoices_collection.find({"products._id": product_id})
+        invoices = invoices_collection.find({"products.product.id": product_id})
         return [serialize_id(invoice) for invoice in invoices]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch invoices: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to fetch invoices: {str(e)}"
+        )
