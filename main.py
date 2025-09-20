@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from routes.invoices import router as invoice_router
 from routes.products import router as product_router
+from routes.analytics import router as analytics_router
 
 load_dotenv()
 
@@ -33,4 +34,4 @@ app.add_middleware(
 
 app.include_router(invoice_router, prefix="/invoices", tags=["Invoices"])
 app.include_router(product_router, prefix="/products", tags=["Products"])
-
+app.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
