@@ -43,6 +43,7 @@ async def create_product(
             "total": total,
             "description": description or "",
             "image_url": await upload_image(image) if image else None,
+            "active": True
         }
 
         inserted = products_collection.insert_one(product_dict)
@@ -50,8 +51,8 @@ async def create_product(
         return Product(**product_dict)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create product: {str(e)}")
-    
-    
+
+
 @router.get("/{product_id}", response_model=Product)
 async def get_product(product_id: str):
     """Retrieve a single product by its ID."""
@@ -61,8 +62,8 @@ async def get_product(product_id: str):
             raise HTTPException(status_code=404, detail="Product not found")
         return serialize_id(product)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch product: {str(e)}")  
-    
+        raise HTTPException(status_code=500, detail=f"Failed to fetch product: {str(e)}")
+
 @router.patch("/{product_id}", response_model=Product)
 async def update_product(
     product_id: str,
@@ -76,6 +77,7 @@ async def update_product(
     total: Optional[float] = Form(None),
     description: Optional[str] = Form(None),
     image: Optional[UploadFile] = File(None),
+    active: Optional[bool] = Form(None)
 ):
     """Update an existing product by its ID."""
     try:
@@ -90,6 +92,7 @@ async def update_product(
             "total": total,
             "description": description,
             "image_url": await upload_image(image) if image else None,
+            "active": active
         }.items() if v is not None}
 
         if not update_data:

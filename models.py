@@ -13,6 +13,7 @@ class Product(BaseModel):
     total: float
     description: str
     image_url: Optional[str] = None
+    active: bool
     class Config:
         populate_by_name = True
 
