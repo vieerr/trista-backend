@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query
-from datetime import datetime
-from db import get_invoices_collection
-from utils import serialize_id
 from typing import Optional
+from services.analyticsService import (
+    fetch_sales_over_time,
+    fetch_top_products,
+    fetch_top_customers
+)
 
 router = APIRouter()
-invoices_collection = get_invoices_collection()
 
 @router.get("/sales-over-time")
 async def sales_over_time(
@@ -17,27 +18,7 @@ async def sales_over_time(
     Dates must be in YYYY-MM-DD format.
     """
     try:
-        query = {}
-        if start_date or end_date:
-            query["created_at"] = {}
-            if start_date:
-                query["created_at"]["$gte"] = start_date
-            if end_date:
-                query["created_at"]["$lte"] = end_date
-
-        pipeline = [
-            {"$match": query},
-            {
-                "$group": {
-                    "_id": {"$substr": ["$created_at", 0, 10]},  # group by date
-                    "total": {"$sum": "$total"}
-                }
-            },
-            {"$sort": {"_id": 1}}
-        ]
-
-        result = list(invoices_collection.aggregate(pipeline))
-        return [{"date": r["_id"], "value": r["total"]} for r in result]
+        return await fetch_sales_over_time(start_date, end_date)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch sales data: {str(e)}")
 
@@ -48,24 +29,7 @@ async def top_products(limit: int = 5):
     Get top selling products by total value.
     """
     try:
-        pipeline = [
-            {"$unwind": "$products"},
-            {
-                "$group": {
-                    "_id": "$products.product.name",
-                    "items": {"$sum": "$products.quantity"},
-                    "total": {"$sum": "$products.total"}
-                }
-            },
-            {"$sort": {"total": -1}},
-            {"$limit": limit}
-        ]
-
-        result = list(invoices_collection.aggregate(pipeline))
-        return [
-            {"concept": r["_id"], "items": r["items"], "total": r["total"]}
-            for r in result
-        ]
+        return await fetch_top_products(limit)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch top products: {str(e)}")
 
@@ -76,22 +40,26 @@ async def top_customers(limit: int = 5):
     Get top customers by total spending.
     """
     try:
-        pipeline = [
-            {
-                "$group": {
-                    "_id": "$client_name",
-                    "documents": {"$sum": 1},
-                    "total": {"$sum": "$total"}
-                }
-            },
-            {"$sort": {"total": -1}},
-            {"$limit": limit}
-        ]
-
-        result = list(invoices_collection.aggregate(pipeline))
-        return [
-            {"concept": r["_id"], "documents": r["documents"], "total": r["total"]}
-            for r in result
-        ]
+        return await fetch_top_customers(limit)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch top customers: {str(e)}")
+
+
+@router.get("/dashboard-analytics")
+async def dashboard_analytics():
+    """
+    Get dashboard analytics including sales over time, top products, and top customers.
+    """
+    try:
+        sales_over_time = await fetch_sales_over_time()
+        top_products = await fetch_top_products()
+        top_customers = await fetch_top_customers()
+
+        data = {
+            "sales_over_time": sales_over_time,
+            "top_products": top_products,
+            "top_customers": top_customers
+        }
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch dashboard analytics: {str(e)}")
